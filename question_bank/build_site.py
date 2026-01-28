@@ -149,6 +149,29 @@ def build_site():
             font-size: 2rem;
             text-align: center;
             margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .speak-btn {
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+
+        .speak-btn:active {
+            transform: scale(0.95);
         }
 
         .options-grid {
@@ -263,6 +286,7 @@ def build_site():
         let score = 0;
         let questions = [];
         let canAnswer = true;
+        let synth = window.speechSynthesis;
 
         const appRoot = document.getElementById('app-root');
         const homeBtn = document.querySelector('.home-btn');
@@ -277,8 +301,6 @@ def build_site():
             
             let gridHtml = '<div class="grid">';
             for (const [key, value] of Object.entries(QUESTION_DATA)) {
-                // Get a representative emoji for the module
-                // usually simple extraction from first question or hardcoded mapping
                 let icon = "📚";
                 if(key.includes("Body")) icon = "💪";
                 if(key.includes("Sense")) icon = "👀";
@@ -326,7 +348,10 @@ def build_site():
                         <div class="progress-fill" style="width: ${progressPct}%"></div>
                     </div>
                     
-                    <div class="question-text">${q.question}</div>
+                    <div class="question-text">
+                        <span>${q.question}</span>
+                        <button class="speak-btn" onclick="speakText('${q.question.replace(/'/g, "\\'")}')">🔊</button>
+                    </div>
                     
                     <div class="options-grid">
                         <div class="option-card" onclick="handleAnswer('a', this)">${q.options[0].content}</div>
@@ -338,6 +363,19 @@ def build_site():
                     <div style="margin-top:20px; font-size:1.2rem; color:#aaa">Question ${currentQuestionIndex + 1} / ${questions.length}</div>
                 </div>
             `;
+            
+            // Auto-speak question for better UX for a 4 yo?
+            // Let's stick to button click unless requested, but usually for kids auto-speak is good.
+            // The prompt asked for "an option to read it", so button is safest.
+        }
+
+        function speakText(text) {
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9; // Slightly slower for kids
+            synth.speak(utterance);
         }
 
         function handleAnswer(selectedId, element) {
@@ -353,14 +391,14 @@ def build_site():
                 element.classList.add('correct');
                 feedbackEl.textContent = "Correct! 🎉";
                 feedbackEl.style.color = "var(--success)";
+                speakText("Correct!");
                 score++;
-                // Auto advance for flow? No, let them click next or wait.
             } else {
                 element.classList.add('wrong');
                 feedbackEl.textContent = "Oops! The correct answer is " + q.correctContent;
                 feedbackEl.style.color = "var(--error)";
+                speakText("Oops! Try again next time.");
                 
-                // Highlight correct one
                 const cards = document.querySelectorAll('.option-card');
                 cards.forEach(card => {
                     if (card.textContent.trim() === q.correctContent) {
@@ -398,6 +436,7 @@ def build_site():
                     <button class="next-btn" style="visibility:visible; margin-top:2rem;" onclick="renderHome()">Back to Menu</button>
                 </div>
             `;
+            speakText(msg);
         }
 
         function showHome() {
